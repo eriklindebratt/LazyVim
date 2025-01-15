@@ -243,7 +243,19 @@ return {
 
       if LazyVim.lsp.is_enabled("denols") and LazyVim.lsp.is_enabled("vtsls") then
         local is_deno = require("lspconfig.util").root_pattern("deno.json", "deno.jsonc")
-        LazyVim.lsp.disable("vtsls", is_deno)
+        LazyVim.lsp.disable("vtsls", function(root_dir, config)
+          local deno_enable_paths = {}
+          vim.list_extend(deno_enable_paths, require("neoconf").get("vscode.deno.enablePaths") or {})
+          vim.list_extend(
+            deno_enable_paths,
+            (require("neoconf").get("lspconfig.denols") or {})["deno.enablePaths"] or {}
+          )
+          if #deno_enable_paths > 0 then
+            -- Deno is only enabled on some paths - ensure vtsls is still enabled
+            return false
+          end
+          return is_deno(root_dir) ~= nil
+        end) -- is_deno)
         LazyVim.lsp.disable("denols", function(root_dir, config)
           if not is_deno(root_dir) then
             config.settings.deno.enable = false
